@@ -1,0 +1,25 @@
+# Package name should be unique
+pkgname="sleep-on-lan-rs"
+pkgver="0.1.0"
+pkgrel="2"
+pkgdesc="UDP service, which puts machine into sleep/suspend on receival of magic package."
+arch=("x86_64")
+url="https://github.com/dikoval/sleep-on-lan"
+license=("GPL2")
+backup=("etc/sleep-on-lan.conf")
+source=(
+    "sleep-on-lan"
+    "sleep-on-lan.conf"
+    "sleep-on-lan.service"
+)
+sha256sums=(
+    "SKIP"
+    "SKIP"
+    "SKIP"
+)
+
+package() {
+    install -D --mode=755 "$srcdir/sleep-on-lan" "$pkgdir/usr/bin/sleep-on-lan"
+    install -D --mode=644 "$srcdir/sleep-on-lan.conf" "$pkgdir/etc/sleep-on-lan.conf"
+    install -D --mode=644 "$srcdir/sleep-on-lan.service" "$pkgdir/usr/lib/systemd/system/sleep-on-lan.service"
+}
