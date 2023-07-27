@@ -1,0 +1,24 @@
+---
+name: "Release project"
+
+on:
+  push:
+    tags: ["**"]
+
+jobs:
+  build:
+    runs-on: "ubuntu-latest"
+    steps:
+      - uses: "actions/checkout@v3"
+
+      - name: "Package"
+        run: "make package"
+
+      - name: "Create GitHub release"
+        uses: "softprops/action-gh-release@v1"
+        with:
+          files: "sleep-on-lan.tar.gz"
+
+permissions:
+  contents: "write"
+...
