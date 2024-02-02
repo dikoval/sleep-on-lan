@@ -1,7 +1,7 @@
 # Package name should be unique
 pkgname="sleep-on-lan-rs"
-pkgver="0.1.0"
-pkgrel="2"
+pkgver="0.2.1"
+pkgrel="1"
 pkgdesc="UDP service, which puts machine into sleep/suspend on receival of magic package."
 arch=("x86_64")
 url="https://github.com/dikoval/sleep-on-lan"
