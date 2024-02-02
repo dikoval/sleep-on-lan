@@ -1,13 +1,13 @@
 [package]
 name = "sleep-on-lan"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-log = "0.4.17"
-env_logger = "0.10.0"
-mac_address = "1.1.4"
-clap = "4.1.6"
-configparser = "3.0.2"
+log = "0.4.20"
+env_logger = "0.10.2"
+mac_address = "1.1.5"
+clap = "4.4.18"
+configparser = "3.0.4"
