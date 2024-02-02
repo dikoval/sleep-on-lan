@@ -95,7 +95,7 @@ fn parse_config() -> Result<DaemonConfig, DaemonError> {
     let sleep_cmd = if dry_run {
         String::from("echo '[DRY RUN] Shutting down...'")
     } else {
-        let default_cmd = String::from("systemctl hybrid-sleep");
+        let default_cmd = String::from("systemctl hibernate");
         config.get("main", "sleep-cmd").unwrap_or(default_cmd)
     };
 
