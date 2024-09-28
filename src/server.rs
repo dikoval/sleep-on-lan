@@ -1,5 +1,5 @@
 use std::net::{SocketAddr, UdpSocket};
-use std::process::{Child, Command};
+use std::process::{Command, ExitStatus};
 
 use log::{debug, info, warn};
 use mac_address::{mac_address_by_name, MacAddress};
@@ -45,11 +45,12 @@ impl Server {
         }
     }
 
-    fn initiate_sleep(self: &Self) -> Result<Child, DaemonError> {
+    fn initiate_sleep(self: &Self) -> Result<ExitStatus, DaemonError> {
         Command::new("sh")
             .arg("-c")
             .arg(&self.sleep_cmd)
             .spawn()
+            .and_then(|mut child| child.wait()) // wait for sleep command to return
             .map_err(|source| SleepError {command: self.sleep_cmd.clone(), source})
     }
 
