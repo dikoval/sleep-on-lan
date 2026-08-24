@@ -9,54 +9,65 @@ use mac_address::MacAddressError;
 pub enum DaemonError {
     ConfigParseError {
         config_path: String,
-        source: String
+        source: String,
     },
 
     SocketBindError {
         address: SocketAddr,
-        source: std::io::Error
+        source: std::io::Error,
     },
 
     SocketReadError {
-        source: std::io::Error
+        source: std::io::Error,
     },
 
     NoMacAddress {
-        iface: String
+        iface: String,
     },
 
     MacReadError {
         iface: String,
-        source: MacAddressError
+        source: MacAddressError,
     },
 
     SleepError {
         command: String,
-        source: std::io::Error
-    }
+        source: std::io::Error,
+    },
 }
 
 // user-friendly error description
 impl Display for DaemonError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::ConfigParseError {config_path, source} =>
-                write!(f, "Failed to read config file {}: {}", config_path, source),
+            Self::ConfigParseError {
+                config_path,
+                source,
+            } => write!(f, "Failed to read config file {}: {}", config_path, source),
 
-            Self::SocketBindError {address, source} =>
-                write!(f, "Failed to bind to address {}: {}", address, source),
+            Self::SocketBindError { address, source } => {
+                write!(f, "Failed to bind to address {}: {}", address, source)
+            }
 
-            Self::SocketReadError {source} =>
-                write!(f, "Failed to read magic package from socket {}", source),
+            Self::SocketReadError { source } => {
+                write!(f, "Failed to read magic package from socket {}", source)
+            }
 
-            Self::NoMacAddress {iface} =>
-                write!(f, "No MAC address found for interface {}", iface),
+            Self::NoMacAddress { iface } => {
+                write!(f, "No MAC address found for interface {}", iface)
+            }
 
-            Self::MacReadError {iface, source} =>
-                write!(f, "Failed to determine MAC address of interface {}: {}", iface, source),
+            Self::MacReadError { iface, source } => write!(
+                f,
+                "Failed to determine MAC address of interface {}: {}",
+                iface, source
+            ),
 
-            Self::SleepError {command, source} =>
-                write!(f, "Failure during sleep command '{}' invocation: {}", command, source)
+            Self::SleepError { command, source } => write!(
+                f,
+                "Failure during sleep command '{}' invocation: {}",
+                command, source
+            ),
         }
     }
 }
@@ -69,7 +80,7 @@ impl Error for DaemonError {
             Self::SocketReadError { source, .. } => Some(source),
             Self::MacReadError { source, .. } => Some(source),
             Self::SleepError { source, .. } => Some(source),
-            _ => None
+            _ => None,
         }
     }
 }
