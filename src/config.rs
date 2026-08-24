@@ -7,8 +7,8 @@ pub struct DaemonConfig {
 impl Default for DaemonConfig {
     fn default() -> Self {
         DaemonConfig {
-            interface: "wlan0".to_string(), //"eth0".to_string(),
-            port: 10009, //9,
+            interface: "eth0".to_string(),
+            port: 9,
             sleep_cmd: "systemctl hibernate".to_string(),
         }
     }
