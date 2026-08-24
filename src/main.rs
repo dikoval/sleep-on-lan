@@ -1,52 +1,70 @@
-use std::convert::Into;
 use std::process::ExitCode;
 
 use clap::{Arg, ArgAction, Command};
 use configparser::ini::Ini;
-use env_logger::Builder;
-use log::{debug, error, LevelFilter, warn};
+use log::{LevelFilter, SetLoggerError, debug, error, warn};
+use systemd_journal_logger::{JournalLog, connected_to_journal};
 
+use crate::config::DaemonConfig;
 use crate::errors::DaemonError;
 use crate::server::Server;
 
-mod server;
+mod config;
 mod errors;
-
-struct DaemonConfig {
-    log_level: LevelFilter,
-    config_path: String,
-    interface: String,
-    port: u16,
-    sleep_cmd: String,
-    dry_run: bool
-}
+mod server;
 
 fn main() -> ExitCode {
-    let config = match parse_config() {
-        Ok(c) => c,
-        Err(error) => {
-            env_logger::init();
-            error!("Failed to read application config: {}", error);
-            return ExitCode::FAILURE;
-        }
+    // read CLI options
+    let cli_args = cli().get_matches();
+
+    let config_path = cli_args.get_one::<String>("config");
+    let dry_run = cli_args.get_flag("dry-run");
+    let log_level = if cli_args.get_flag("verbose") {
+        LevelFilter::Debug
+    } else {
+        LevelFilter::Info
     };
 
-    Builder::from_default_env().filter_level(config.log_level).init();
-
-    if config.dry_run {
-        warn!("Starting application in DRY-RUN mode with config {}", config.config_path);
-    } else {
-        debug!("Starting application with config {}", config.config_path);
+    // init logging
+    if let Err(e) = init_logging(log_level) {
+        eprint!("Failed to init application logging: {}", e);
+        return ExitCode::FAILURE;
     }
 
-    let server = Server::new(config.interface, config.port, config.sleep_cmd);
-    return match server.run() {
+    return match run_daemon(config_path, dry_run) {
         Ok(_) => ExitCode::SUCCESS,
         Err(error) => {
             error!("Failed to start application: {}", error);
             return ExitCode::FAILURE;
         }
     };
+}
+
+fn run_daemon(config_path: Option<&String>, dry_run: bool) -> Result<(), DaemonError> {
+    // read config
+    let mut config = match config_path {
+        Some(path) => read_config_file(path)?,
+        None => {
+            let default_config_path = "/etc/sleep-on-lan.conf";
+            match std::fs::exists(default_config_path) {
+                Ok(true) => read_config_file(default_config_path)?,
+                _ => {
+                    debug!(
+                        "Config file not found - starting application with default built-in configuration..."
+                    );
+                    DaemonConfig::default()
+                }
+            }
+        }
+    };
+
+    if dry_run {
+        warn!("Starting application in DRY-RUN mode!");
+        config.sleep_cmd = String::from("echo '[DRY RUN] Shutting down...'");
+    }
+
+    let server = Server::new(config);
+    server.run()
 }
 
 fn cli() -> Command {
@@ -71,40 +89,48 @@ fn cli() -> Command {
         ]);
 }
 
-fn parse_config() -> Result<DaemonConfig, DaemonError> {
-    let cli_args = cli().get_matches();
+fn init_logging(log_level: LevelFilter) -> Result<(), SetLoggerError> {
+    if connected_to_journal() {
+        JournalLog::new()
+            .unwrap()
+            .with_extra_fields(vec![("VERSION", env!("CARGO_PKG_VERSION"))])
+            .install()?;
 
-    // read CLI options
-    let default_config_path = &String::from("/etc/sleep-on-lan.conf");
-    let config_path = cli_args.get_one::<String>("config").unwrap_or(default_config_path);
-    let dry_run = cli_args.get_flag("dry-run");
-    let log_level = if cli_args.get_flag("verbose") {
-        LevelFilter::Debug
+        log::set_max_level(log_level);
     } else {
-        LevelFilter::Info
-    };
+        env_logger::builder().filter_level(log_level).try_init()?;
+    }
 
-    // read config
+    Ok(())
+}
+
+fn read_config_file(config_path: &str) -> Result<DaemonConfig, DaemonError> {
+    // parse ini file
     let mut config = Ini::new();
-    let _ = config.load(config_path.clone()).map_err(
-        |source| DaemonError::ConfigParseError { config_path: config_path.clone(), source }
+    let _ = config.load(config_path).map_err(
+        |source| DaemonError::ConfigParseError { config_path: config_path.to_string(), source }
     )?;
 
-    let interface = config.get("main", "interface").unwrap_or("eth0".into());
-    let port = config.getuint("main", "port").unwrap().unwrap_or(9) as u16;
-    let sleep_cmd = if dry_run {
-        String::from("echo '[DRY RUN] Shutting down...'")
-    } else {
-        let default_cmd = String::from("systemctl hibernate");
-        config.get("main", "sleep-cmd").unwrap_or(default_cmd)
-    };
+    // parse config
+    let interface = config
+        .get("main", "interface")
+        .unwrap_or("eth0".to_string());
+    let port = config
+        .getuint("main", "port")
+        .map_err(|source| DaemonError::ConfigParseError {
+            config_path: config_path.to_string(),
+            source,
+        })?
+        .unwrap_or(9) as u16;
+    let sleep_cmd = config
+        .get("main", "sleep-cmd")
+        .unwrap_or("systemctl hibernate".to_string());
 
-    return Ok(DaemonConfig {
-        log_level,
-        config_path: config_path.clone(),
+    debug!("Using config file '{}' for application", config_path);
+
+    Ok(DaemonConfig {
         interface,
         port,
-        sleep_cmd: sleep_cmd.into(),
-        dry_run
-    });
+        sleep_cmd,
+    })
 }

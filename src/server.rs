@@ -4,6 +4,7 @@ use std::process::{Command, ExitStatus};
 use log::{debug, info, warn};
 use mac_address::{mac_address_by_name, MacAddress};
 
+use crate::config::DaemonConfig;
 use crate::errors::DaemonError;
 use crate::errors::DaemonError::{MacReadError, NoMacAddress, SleepError, SocketBindError, SocketReadError};
 
@@ -17,9 +18,9 @@ pub struct Server {
 }
 
 impl Server {
-    pub fn new(interface: String, port: u16, sleep_cmd: String) -> Server {
+    pub fn new(config: DaemonConfig) -> Server {
         return Server {
-            interface, port, sleep_cmd
+            interface: config.interface, port: config.port, sleep_cmd: config.sleep_cmd
         }
     }
 
@@ -32,7 +33,7 @@ impl Server {
         let device_mac = self.get_interface_mac()?;
 
         loop {
-            info!("Waiting for magic package for MAC {}", device_mac);
+            info!("Waiting for magic package for MAC {} on address {}", device_mac, address);
             let (read_count, sender) = socket.recv_from(&mut buffer).map_err(|source| SocketReadError { source })?;
 
             let filled_buffer = &mut buffer[..read_count];
