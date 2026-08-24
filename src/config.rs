@@ -1,0 +1,15 @@
+pub struct DaemonConfig {
+    pub(crate) interface: String,
+    pub(crate) port: u16,
+    pub(crate) sleep_cmd: String,
+}
+
+impl Default for DaemonConfig {
+    fn default() -> Self {
+        DaemonConfig {
+            interface: "eth0".to_string(),
+            port: 9,
+            sleep_cmd: "systemctl hibernate".to_string(),
+        }
+    }
+}
