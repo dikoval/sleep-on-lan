@@ -113,7 +113,7 @@ impl Server {
 }
 
 #[cfg(test)]
-#[rustfmt::skip]  // keep consistent alignment for package examples
+#[rustfmt::skip]  // keep consistent alignment for test packages
 mod tests {
     use std::error::Error;
     use std::str::FromStr;
