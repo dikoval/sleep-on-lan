@@ -31,13 +31,13 @@ fn main() -> ExitCode {
         return ExitCode::FAILURE;
     }
 
-    return match run_daemon(config_path, dry_run) {
+    match run_daemon(config_path, dry_run) {
         Ok(_) => ExitCode::SUCCESS,
         Err(error) => {
             error!("Failed to start application: {}", error);
-            return ExitCode::FAILURE;
+            ExitCode::FAILURE
         }
-    };
+    }
 }
 
 fn run_daemon(config_path: Option<&String>, dry_run: bool) -> Result<(), DaemonError> {
@@ -68,7 +68,7 @@ fn run_daemon(config_path: Option<&String>, dry_run: bool) -> Result<(), DaemonE
 }
 
 fn cli() -> Command {
-    return Command::new("Sleep-On-LAN daemon")
+    Command::new("Sleep-On-LAN daemon")
         .about(
             "Triggers system sleep on magic package receival.\n\n\
              Application works with the exact same magic packet format as used for Wake-On-LAN, \
@@ -86,7 +86,7 @@ fn cli() -> Command {
                 .long("dry-run")
                 .action(ArgAction::SetTrue)
                 .help("Start in dry-run mode, where receival of magic package would not trigger actual server sleep")
-        ]);
+        ])
 }
 
 fn init_logging(log_level: LevelFilter) -> Result<(), SetLoggerError> {
@@ -107,9 +107,12 @@ fn init_logging(log_level: LevelFilter) -> Result<(), SetLoggerError> {
 fn read_config_file(config_path: &str) -> Result<DaemonConfig, DaemonError> {
     // parse ini file
     let mut config = Ini::new();
-    let _ = config.load(config_path).map_err(
-        |source| DaemonError::ConfigParseError { config_path: config_path.to_string(), source }
-    )?;
+    let _ = config
+        .load(config_path)
+        .map_err(|source| DaemonError::ConfigParseError {
+            config_path: config_path.to_string(),
+            source,
+        })?;
 
     // parse config
     let interface = config
